@@ -1,41 +1,43 @@
-// SAYF Gaming
+// SAYF Gaming — window tabs. Each tab is addressable (#roster, #join) so a
+// link can point straight at one, the way a client window remembers its tab.
 (function () {
-  // Years since the corp was founded on 19 Nov 2012. The HTML already says
-  // thirteen, so the page is right without JavaScript; this keeps it right
-  // after each birthday without anyone touching the site.
-  var founded = Date.UTC(2012, 10, 19);
-  var years = Math.floor((Date.now() - founded) / (365.2425 * 864e5));
-  var words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
-    'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
-    'seventeen', 'eighteen', 'nineteen', 'twenty', 'twenty-one', 'twenty-two'];
+  var tabs = [].slice.call(document.querySelectorAll('.tab'));
+  var panels = [].slice.call(document.querySelectorAll('.panel'));
+  if (!tabs.length) return;
 
-  document.querySelectorAll('[data-years]').forEach(function (el) {
-    el.textContent = String(years);
-  });
-  document.querySelectorAll('[data-years-word]').forEach(function (el) {
-    var w = words[years] || String(years);
-    el.textContent = el.hasAttribute('data-cap') ? w.charAt(0).toUpperCase() + w.slice(1) : w;
-  });
-
-  // Mobile menu.
-  var toggle = document.querySelector('.menu-toggle');
-  var nav = document.getElementById('site-nav');
-  if (!toggle || !nav) return;
-
-  function setOpen(open) {
-    nav.classList.toggle('is-open', open);
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  function known(id) {
+    return tabs.some(function (t) { return t.dataset.tab === id; });
   }
-  toggle.addEventListener('click', function () {
-    setOpen(!nav.classList.contains('is-open'));
-  });
-  nav.addEventListener('click', function (e) {
-    if (e.target.closest('a')) setOpen(false);
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && nav.classList.contains('is-open')) {
-      setOpen(false);
-      toggle.focus();
+
+  function show(id, writeHash) {
+    tabs.forEach(function (t) {
+      var on = t.dataset.tab === id;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+    });
+    panels.forEach(function (p) { p.hidden = p.id !== 'panel-' + id; });
+    if (writeHash && window.history.replaceState) {
+      window.history.replaceState(null, '', '#' + id);
     }
+  }
+
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { show(tab.dataset.tab, true); });
+    tab.addEventListener('keydown', function (e) {
+      var step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!step) return;
+      e.preventDefault();
+      var next = tabs[(i + step + tabs.length) % tabs.length];
+      next.focus();
+      show(next.dataset.tab, true);
+    });
+  });
+
+  var start = window.location.hash.replace('#', '');
+  show(known(start) ? start : tabs[0].dataset.tab, false);
+
+  window.addEventListener('hashchange', function () {
+    var id = window.location.hash.replace('#', '');
+    if (known(id)) show(id, false);
   });
 })();
