@@ -16,6 +16,11 @@
       t.tabIndex = on ? 0 : -1;
     });
     panels.forEach(function (p) { p.hidden = p.id !== 'panel-' + id; });
+
+    // The player is only contacted once somebody opens Media, so YouTube
+    // is not loaded (or told about the visit) on a plain page view.
+    var frame = document.querySelector('#panel-' + id + ' iframe[data-src]');
+    if (frame) { frame.src = frame.dataset.src; frame.removeAttribute('data-src'); }
     if (writeHash && window.history.replaceState) {
       window.history.replaceState(null, '', '#' + id);
     }
